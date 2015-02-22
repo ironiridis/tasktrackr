@@ -54,6 +54,14 @@ func oauthGetEmailFromGoogle(c *http.Client) string {
 	return userinfo.Email
 }
 
+func oauthGetEmail(p oauthProvider, c *http.Client) string {
+	switch p {
+	case oauthProviderGoogle:
+		return oauthGetEmailFromGoogle(c)
+	}
+	panic("unknown oauth provider passed to oauthGetEmail()")
+}
+
 func oauthStart(p oauthProvider) string {
 	conf := oauthGetConfig(p)
 	u4, err := uuid.NewV4()
@@ -70,12 +78,7 @@ func oauthComplete(p oauthProvider, code, state string) string {
 	if err != nil {
 		panic(err)
 	}
-	client := conf.Client(oauth2.NoContext, tok)
-	switch p {
-	case oauthProviderGoogle:
-		return oauthGetEmailFromGoogle(client)
-	}
-	panic("unknown oauth provider passed to oauthComplete()")
+	return (oauthGetEmail(p, conf.Client(oauth2.NoContext, tok)))
 }
 
 func main() {
