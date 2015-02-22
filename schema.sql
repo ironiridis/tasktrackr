@@ -137,11 +137,25 @@ ALTER TABLE vs_database_diagrams OWNER TO postgres;
 SET search_path = v0, pg_catalog;
 
 --
+-- Name: discussion_commentid_seq; Type: SEQUENCE; Schema: v0; Owner: postgres
+--
+
+CREATE SEQUENCE discussion_commentid_seq
+    START WITH 0
+    INCREMENT BY 1
+    MINVALUE 0
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE discussion_commentid_seq OWNER TO postgres;
+
+--
 -- Name: discussion; Type: TABLE; Schema: v0; Owner: postgres; Tablespace: 
 --
 
 CREATE TABLE discussion (
-    commentid integer NOT NULL,
+    commentid integer DEFAULT nextval('discussion_commentid_seq'::regclass) NOT NULL,
     userid integer NOT NULL,
     comment_ts timestamp without time zone NOT NULL,
     taskid integer NOT NULL,
@@ -152,11 +166,25 @@ CREATE TABLE discussion (
 ALTER TABLE discussion OWNER TO postgres;
 
 --
+-- Name: tags_tagid_seq; Type: SEQUENCE; Schema: v0; Owner: postgres
+--
+
+CREATE SEQUENCE tags_tagid_seq
+    START WITH 0
+    INCREMENT BY 1
+    MINVALUE 0
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE tags_tagid_seq OWNER TO postgres;
+
+--
 -- Name: tags; Type: TABLE; Schema: v0; Owner: postgres; Tablespace: 
 --
 
 CREATE TABLE tags (
-    tagid integer NOT NULL,
+    tagid integer DEFAULT nextval('tags_tagid_seq'::regclass) NOT NULL,
     label_en character varying(2044) NOT NULL,
     color character varying(3) DEFAULT '000'::character varying NOT NULL,
     text_bold boolean DEFAULT false NOT NULL,
@@ -171,11 +199,25 @@ CREATE TABLE tags (
 ALTER TABLE tags OWNER TO postgres;
 
 --
+-- Name: task_actions_actionid_seq; Type: SEQUENCE; Schema: v0; Owner: postgres
+--
+
+CREATE SEQUENCE task_actions_actionid_seq
+    START WITH 0
+    INCREMENT BY 1
+    MINVALUE 0
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE task_actions_actionid_seq OWNER TO postgres;
+
+--
 -- Name: task_actions; Type: TABLE; Schema: v0; Owner: postgres; Tablespace: 
 --
 
 CREATE TABLE task_actions (
-    actionid integer NOT NULL,
+    actionid integer DEFAULT nextval('task_actions_actionid_seq'::regclass) NOT NULL,
     stateid_start integer NOT NULL,
     stateid_end integer NOT NULL,
     label_en character varying(2044) NOT NULL,
@@ -198,11 +240,25 @@ CREATE TABLE task_state_tags (
 ALTER TABLE task_state_tags OWNER TO postgres;
 
 --
+-- Name: task_states_stateid_seq; Type: SEQUENCE; Schema: v0; Owner: postgres
+--
+
+CREATE SEQUENCE task_states_stateid_seq
+    START WITH 0
+    INCREMENT BY 1
+    MINVALUE 0
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE task_states_stateid_seq OWNER TO postgres;
+
+--
 -- Name: task_states; Type: TABLE; Schema: v0; Owner: postgres; Tablespace: 
 --
 
 CREATE TABLE task_states (
-    stateid integer NOT NULL,
+    stateid integer DEFAULT nextval('task_states_stateid_seq'::regclass) NOT NULL,
     label_en character varying(2044) NOT NULL,
     permissions json,
     attr_needs_attention boolean,
