@@ -1,55 +1,97 @@
 package main
 
 import (
-	"fmt"
-	"log"
-	"io"
-	"os"
+	"encoding/json"
 	"flag"
+	"fmt"
+	"net/http"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
-	"github.com/nu7hatch/gouuid"
-	
+
 	"github.com/ironiridis/private"
+	"github.com/nu7hatch/gouuid"
 )
 
-func init() {
-	
+type oauthProvider int
+
+const (
+	oauthProviderUnknown oauthProvider = iota
+	oauthProviderGoogle  oauthProvider = iota
+)
+
+func oauthGetConfig(p oauthProvider) *oauth2.Config {
+	switch p {
+	case oauthProviderGoogle:
+		return (&oauth2.Config{
+			ClientID:     private.Get("tasktrackr_gapi_oauth2_clientid"),
+			ClientSecret: private.Get("tasktrackr_gapi_oauth2_secret"),
+			RedirectURL:  "https://oauth.tasktrackr.net/done",
+			Scopes: []string{
+				"https://www.googleapis.com/auth/userinfo.email",
+			},
+			Endpoint: google.Endpoint,
+		})
+	}
+	panic("unknown oauth provider passed to oauthGetConfig()")
+}
+
+func oauthGetEmailFromGoogle(c *http.Client) string {
+	type googleUserInfoResponse struct {
+		Email string `json:"email"`
+	}
+
+	r, err := c.Get("https://www.googleapis.com/oauth2/v2/userinfo?fields=email")
+	if err != nil {
+		panic(err)
+	}
+	dec := json.NewDecoder(r.Body)
+	var userinfo googleUserInfoResponse
+	err = dec.Decode(&userinfo)
+	if err != nil {
+		panic(err)
+	}
+	return userinfo.Email
+}
+
+func oauthGetEmail(p oauthProvider, c *http.Client) string {
+	switch p {
+	case oauthProviderGoogle:
+		return oauthGetEmailFromGoogle(c)
+	}
+	panic("unknown oauth provider passed to oauthGetEmail()")
+}
+
+func oauthStart(p oauthProvider) string {
+	conf := oauthGetConfig(p)
+	u4, err := uuid.NewV4()
+	if err != nil {
+		panic(err)
+	}
+	return (conf.AuthCodeURL(u4.String()))
+}
+
+func oauthComplete(p oauthProvider, code, state string) string {
+	conf := oauthGetConfig(p)
+	// TODO need to check "state" and compare with original state value, per spec
+	tok, err := conf.Exchange(oauth2.NoContext, code)
+	if err != nil {
+		panic(err)
+	}
+	return (oauthGetEmail(p, conf.Client(oauth2.NoContext, tok)))
 }
 
 func main() {
+	// This is a silly proof-of-concept using the API Google provides for OAuth.
+	//
 	var oauthcode = flag.String("code", "", "from Google")
 	flag.Parse()
-	
-	conf := &oauth2.Config{
-		ClientID:     private.Get("tasktrackr_gapi_oauth2_clientid"),
-		ClientSecret: private.Get("tasktrackr_gapi_oauth2_secret"),
-		RedirectURL:  "https://oauth.tasktrackr.net/done",
-		Scopes: []string{
-			"https://www.googleapis.com/auth/userinfo.email",
-		},
-		Endpoint: google.Endpoint,
-	}
-	
-	if *oauthcode == "" {
-		u4, err := uuid.NewV4()
-		if err != nil {
-			panic(err)
-		}
-		url := conf.AuthCodeURL(u4.String())
-		fmt.Printf("%v\n", url)
-	} else {
-	// Handle the exchange code to initiate a transport.
-		tok, err := conf.Exchange(oauth2.NoContext, *oauthcode)
-		if err != nil {
-			log.Fatal(err)
-		}
-		client := conf.Client(oauth2.NoContext, tok)
-		r, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo?fields=email")
-		if err == nil {
-			io.Copy(os.Stdout,r.Body)
-		}
-	}
-}
 
+	if *oauthcode == "" {
+		fmt.Printf("URL: %s\n", oauthStart(oauthProviderGoogle))
+		return
+	}
+
+	email := oauthComplete(oauthProviderGoogle, *oauthcode, "")
+	fmt.Printf("Email: %s\n", email)
+}
